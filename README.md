@@ -5,7 +5,7 @@ A personal sandbox for testing physics and particle simulations
 
 ```bash
 # Install build dependencies for SDL on wayland
-sudo dnf install cmake ninja ccache wayland-devel wayland-protocols-devel libxkbcommon-devel mesa-libEGL-devel
+sudo dnf install cmake ninja ccache wayland-devel wayland-protocols-devel libxkbcommon-devel mesa-libEGL-devel libdecor-devel
 
 # Build
 cmake --preset clang-release 
