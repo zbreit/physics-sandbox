@@ -1,12 +1,85 @@
 #include "SDL3/SDL.h" // IWYU pragma: export
+#include "vec.hpp"
 
-constexpr int WIDTH = 640;
-constexpr int HEIGHT = 480;
+constexpr int SCREEN_WIDTH = 640;
+constexpr int SCREEN_HEIGHT = 480;
+
+constexpr SDL_FRect WORLD_BBOX = {
+    .x = 0,
+    .y = 0,
+    .w = 100,
+    .h = 100.0 / SCREEN_WIDTH * SCREEN_HEIGHT,
+};
+
+sndbx::vec<2> world_point_to_screen(sndbx::vec<2> point) {
+    auto x2 = (point.x() - WORLD_BBOX.x) / WORLD_BBOX.w * SCREEN_WIDTH;
+    // Y-axis is flipped between screen and world space.
+    auto y2 = SCREEN_HEIGHT - (point.y() - WORLD_BBOX.y) / WORLD_BBOX.h * SCREEN_HEIGHT;
+
+    return sndbx::vec<2> {{x2, y2}};
+}
+
+float world_scalar_to_screen(float point) {
+    return point / WORLD_BBOX.w * SCREEN_WIDTH;
+}
+
+// Source - https://stackoverflow.com/a/48291620
+// Posted by Scotty Stephens, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-10-11, License - CC BY-SA 4.0
+void sdl_draw_circle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, int32_t radius)
+{
+   const int32_t diameter = (radius * 2);
+
+   int32_t x = (radius - 1);
+   int32_t y = 0;
+   int32_t tx = 1;
+   int32_t ty = 1;
+   int32_t error = (tx - diameter);
+
+   while (x >= y)
+   {
+      //  Each of the following renders an octant of the circle
+      SDL_RenderPoint(renderer, centreX + x, centreY - y);
+      SDL_RenderPoint(renderer, centreX + x, centreY + y);
+      SDL_RenderPoint(renderer, centreX - x, centreY - y);
+      SDL_RenderPoint(renderer, centreX - x, centreY + y);
+      SDL_RenderPoint(renderer, centreX + y, centreY - x);
+      SDL_RenderPoint(renderer, centreX + y, centreY + x);
+      SDL_RenderPoint(renderer, centreX - y, centreY - x);
+      SDL_RenderPoint(renderer, centreX - y, centreY + x);
+
+      if (error <= 0)
+      {
+         ++y;
+         error += ty;
+         ty += 2;
+      }
+
+      if (error > 0)
+      {
+         --x;
+         tx += 2;
+         error += (tx - diameter);
+      }
+   }
+}
+
+struct Particle {
+    sndbx::vec<2> pos;
+    sndbx::vec<2> speed;
+    sndbx::vec<2> accel;
+    float mass;
+    float radius;
+};
+
+// void advance(Particle& particle, Particle dt) {
+//     particle.pos = particle.pos
+// }
 
 int main()
 {
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* window = SDL_CreateWindow("Physics Sandbox", WIDTH, HEIGHT, SDL_WINDOW_VULKAN);
+    SDL_Window* window = SDL_CreateWindow("Physics Sandbox", SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_VULKAN);
 
     // Check that the window was successfully created
     if (window == nullptr)
@@ -17,8 +90,15 @@ int main()
 
   SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
 
+  Particle p1 {
+      .pos = {{WORLD_BBOX.w / 2, WORLD_BBOX.h / 2}},
+      .speed = {},
+      .accel = {},
+      .mass = 1,
+      .radius = 10,
+  };
+
   bool done = false;
-  uint8_t green = 255;
   while (!done) {
         SDL_Event event;
 
@@ -30,10 +110,16 @@ int main()
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, green--, 0, 255);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 10, 127, 255, 255);
+
+        auto center = world_point_to_screen(p1.pos);
+        auto radius = world_scalar_to_screen(p1.radius);
+        sdl_draw_circle(renderer, center.x(), center.y(), radius);
+
         SDL_RenderPresent(renderer);
-        SDL_Delay(10);
     }
 
     SDL_DestroyRenderer(renderer);
