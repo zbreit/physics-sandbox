@@ -8,18 +8,26 @@ namespace sndbx {
 template<std::size_t N>
 class vec {
     public:
-        friend vec operator+(vec<N> lhs, const vec<N>& rhs) {
+        vec& operator+=(const vec<N>& rhs) {
             for (int i = 0; i < N; i++) {
-                lhs._arr[i] += rhs._arr[i];
+                _arr[i] += rhs._arr[i];
             }
-            return lhs;
+
+            return *this;
+        }
+
+        void operator-=(const vec<N>& rhs) {
+            for (int i = 0; i < N; i++) {
+                _arr[i] -= rhs._arr[i];
+            }
+        }
+
+        friend vec operator+(vec<N> lhs, const vec<N>& rhs) {
+            return lhs += rhs;
         }
 
         friend vec operator-(vec<N> lhs, const vec<N>& rhs) {
-            for (int i = 0; i < N; i++) {
-                lhs -= rhs._arr[i];
-            }
-            return lhs;
+            return lhs -= rhs;
         }
 
         vec operator-() {
@@ -64,22 +72,22 @@ class vec {
         }
 
         template<std::size_t i>
-        float const_at() {
+        float& const_at() {
             static_assert(i < N, "Vec index out of bounds");
             return _arr[i];
         }
 
-        float x() {
+        float& x() {
             static_assert(N > 0, "Vector must have at least 1 element");
             return const_at<0>();
         }
 
-        float y() {
+        float& y() {
             static_assert(N > 1, "Vector must have at least 2 elements");
             return const_at<1>();
         }
 
-        float z() {
+        float& z() {
             static_assert(N > 2, "Vector must have at least 3 elements");
             return const_at<2>();
         }

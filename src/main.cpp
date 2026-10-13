@@ -1,14 +1,16 @@
 #include "SDL3/SDL.h" // IWYU pragma: export
+#include <chrono>
 #include "vec.hpp"
 
 constexpr int SCREEN_WIDTH = 640;
 constexpr int SCREEN_HEIGHT = 480;
 
+// Units in meters
 constexpr SDL_FRect WORLD_BBOX = {
     .x = 0,
     .y = 0,
-    .w = 100,
-    .h = 100.0 / SCREEN_WIDTH * SCREEN_HEIGHT,
+    .w = 20,
+    .h = 20.0 / SCREEN_WIDTH * SCREEN_HEIGHT,
 };
 
 sndbx::vec<2> world_point_to_screen(sndbx::vec<2> point) {
@@ -66,15 +68,40 @@ void sdl_draw_circle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, 
 
 struct Particle {
     sndbx::vec<2> pos;
-    sndbx::vec<2> speed;
+    sndbx::vec<2> velocity;
     sndbx::vec<2> accel;
     float mass;
     float radius;
 };
 
-// void advance(Particle& particle, Particle dt) {
-//     particle.pos = particle.pos
-// }
+void update_particle(Particle& particle, float dt) {
+    particle.pos += particle.velocity * dt + particle.accel * (0.5 * dt * dt);
+    particle.velocity += particle.accel * dt;
+}
+
+void fix_world_collisions(Particle& particle) {
+    auto x = particle.pos.x();
+    auto y = particle.pos.y();
+    auto r = particle.radius;
+
+    if (x - r < WORLD_BBOX.x) {
+        particle.velocity.x() *= -1;
+        particle.pos.x() = WORLD_BBOX.x + r;
+    }
+    else if (x + r > WORLD_BBOX.x + WORLD_BBOX.w) {
+        particle.velocity.x() *= -1;
+        particle.pos.x() = WORLD_BBOX.x + WORLD_BBOX.w - r;
+    }
+
+    if (y - r < WORLD_BBOX.y) {
+        particle.velocity.y() *= -1;
+        particle.pos.y() = WORLD_BBOX.y + r;
+    }
+    else if (y + r > WORLD_BBOX.y + WORLD_BBOX.h) {
+        particle.velocity.y() *= -1;
+        particle.pos.y() = WORLD_BBOX.y + WORLD_BBOX.h - r;
+    }
+}
 
 int main()
 {
@@ -92,13 +119,14 @@ int main()
 
   Particle p1 {
       .pos = {{WORLD_BBOX.w / 2, WORLD_BBOX.h / 2}},
-      .speed = {},
-      .accel = {},
+      .velocity = {{10, 10}},
+      .accel = {{0, -9.8}},
       .mass = 1,
-      .radius = 10,
+      .radius = 1,
   };
 
   bool done = false;
+  auto prev_timestamp = std::chrono::steady_clock::now();
   while (!done) {
         SDL_Event event;
 
@@ -120,6 +148,12 @@ int main()
         sdl_draw_circle(renderer, center.x(), center.y(), radius);
 
         SDL_RenderPresent(renderer);
+
+        auto now = std::chrono::steady_clock::now();
+        auto dt = std::chrono::duration_cast<std::chrono::duration<float>>(now - prev_timestamp).count();
+        prev_timestamp = now;
+        update_particle(p1, dt);
+        fix_world_collisions(p1);
     }
 
     SDL_DestroyRenderer(renderer);
