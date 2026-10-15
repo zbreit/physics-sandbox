@@ -16,10 +16,20 @@ class vec {
             return *this;
         }
 
-        void operator-=(const vec<N>& rhs) {
+        vec& operator-=(const vec<N>& rhs) {
             for (int i = 0; i < N; i++) {
                 _arr[i] -= rhs._arr[i];
             }
+
+            return *this;
+        }
+
+        vec& operator*=(float rhs) {
+            for (int i = 0; i < N; i++) {
+                _arr[i] *= rhs;
+            }
+
+            return *this;
         }
 
         friend vec operator+(vec<N> lhs, const vec<N>& rhs) {
@@ -39,14 +49,11 @@ class vec {
         }
 
         friend vec operator*(float lhs, vec rhs) {
-            for (int i = 0; i < N; i++) {
-                rhs._arr[i] *= lhs;
-            }
-            return rhs;
+            return rhs *= lhs;
         }
 
         friend vec operator*(vec lhs, float rhs) {
-            return rhs * lhs;
+            return lhs *= rhs;
         }
 
         float magnitude() {

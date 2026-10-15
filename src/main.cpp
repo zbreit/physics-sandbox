@@ -67,38 +67,47 @@ void sdl_draw_circle(SDL_Renderer * renderer, int32_t centreX, int32_t centreY, 
 }
 
 struct Particle {
+    // Position
     sndbx::vec<2> pos;
-    sndbx::vec<2> velocity;
-    sndbx::vec<2> accel;
+    // Velocity
+    sndbx::vec<2> vel;
+    // Acceleration
+    sndbx::vec<2> acc;
+    // Mass
     float mass;
-    float radius;
+    // Radius
+    float rad;
 };
 
 void update_particle(Particle& particle, float dt) {
-    particle.pos += particle.velocity * dt + particle.accel * (0.5 * dt * dt);
-    particle.velocity += particle.accel * dt;
+    particle.pos += particle.vel * dt + particle.acc * (0.5 * dt * dt);
+    particle.vel += particle.acc * dt;
 }
 
 void fix_world_collisions(Particle& particle) {
+    constexpr float DRAG = 0.6;
     auto x = particle.pos.x();
     auto y = particle.pos.y();
-    auto r = particle.radius;
+    auto r = particle.rad;
 
     if (x - r < WORLD_BBOX.x) {
-        particle.velocity.x() *= -1;
+        particle.vel.x() *= -DRAG;
+        particle.vel.y() *= DRAG;
         particle.pos.x() = WORLD_BBOX.x + r;
     }
     else if (x + r > WORLD_BBOX.x + WORLD_BBOX.w) {
-        particle.velocity.x() *= -1;
+        particle.vel.x() *= -DRAG;
+        particle.vel.y() *= DRAG;
         particle.pos.x() = WORLD_BBOX.x + WORLD_BBOX.w - r;
     }
 
     if (y - r < WORLD_BBOX.y) {
-        particle.velocity.y() *= -1;
+        particle.vel.y() *= -DRAG;
+        particle.vel.x() *= DRAG;
         particle.pos.y() = WORLD_BBOX.y + r;
-    }
-    else if (y + r > WORLD_BBOX.y + WORLD_BBOX.h) {
-        particle.velocity.y() *= -1;
+    } else if (y + r > WORLD_BBOX.y + WORLD_BBOX.h) {
+        particle.vel.y() *= -DRAG;
+        particle.vel.x() *= DRAG;
         particle.pos.y() = WORLD_BBOX.y + WORLD_BBOX.h - r;
     }
 }
@@ -119,10 +128,10 @@ int main()
 
   Particle p1 {
       .pos = {{WORLD_BBOX.w / 2, WORLD_BBOX.h / 2}},
-      .velocity = {{10, 10}},
-      .accel = {{0, -9.8}},
+      .vel = {{10, 20}},
+      .acc = {{0, -9.8}},
       .mass = 1,
-      .radius = 1,
+      .rad = 0.1,
   };
 
   bool done = false;
@@ -144,7 +153,7 @@ int main()
         SDL_SetRenderDrawColor(renderer, 10, 127, 255, 255);
 
         auto center = world_point_to_screen(p1.pos);
-        auto radius = world_scalar_to_screen(p1.radius);
+        auto radius = world_scalar_to_screen(p1.rad);
         sdl_draw_circle(renderer, center.x(), center.y(), radius);
 
         SDL_RenderPresent(renderer);
